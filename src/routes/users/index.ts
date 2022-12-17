@@ -10,7 +10,7 @@ const router = express.Router()
 const USERS_TABLE = process.env.USERS_TABLE as string
 const dynamoDbClient = new AWS.DynamoDB.DocumentClient()
 
-router.get('/', async (_, res: Response) => {
+router.get('/', async (_, res: Response): Promise<void> => {
   try {
     const { Items } = await dynamoDbClient
       .scan({
@@ -25,7 +25,7 @@ router.get('/', async (_, res: Response) => {
   }
 })
 
-router.get('/:userId', async (req: Request, res: Response) => {
+router.get('/:userId', async (req: Request, res: Response): Promise<void> => {
   try {
     const { Item } = await dynamoDbClient
       .get({
@@ -51,7 +51,7 @@ router.get('/:userId', async (req: Request, res: Response) => {
 router.post(
   '/',
   [check('name').isString().not().isEmpty()],
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void | Response> => {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() })
@@ -77,55 +77,90 @@ router.post(
   }
 )
 
-router.patch('/:userId', async (req: Request, res: Response) => {
-  try {
-    const { Item } = await dynamoDbClient
-      .get({
+router.patch(
+  '/:userId',
+  async (req: Request, res: Response): Promise<void | Response> => {
+    try {
+      const { Item } = await dynamoDbClient
+        .get({
+          TableName: USERS_TABLE,
+          Key: {
+            userId: req.params.userId,
+          },
+        })
+        .promise()
+      if (!Item) {
+        return res
+          .status(404)
+          .json({ error: 'Could not find user with provided "userId"' })
+      }
+      const dataObject: PatchUserReq = { ...req.body, updatedAt: Date.now() }
+      const itemKeys = Object.keys(dataObject).filter((key) => {
+        return key !== 'createdAt'
+      })
+      const params = {
         TableName: USERS_TABLE,
         Key: {
           userId: req.params.userId,
         },
-      })
-      .promise()
-    if (!Item) {
-      return res
-        .status(404)
-        .json({ error: 'Could not find user with provided "userId"' })
+        UpdateExpression: `SET ${itemKeys
+          .map((_, index) => `#field${index} = :value${index}`)
+          .join(', ')}`,
+        ExpressionAttributeNames: itemKeys.reduce(
+          (accumulator, key, index) => ({
+            ...accumulator,
+            [`#field${index}`]: key,
+          }),
+          {}
+        ),
+        ExpressionAttributeValues: itemKeys.reduce(
+          (accumulator, key: string, index: number) => ({
+            ...accumulator,
+            [`:value${index}`]: dataObject[key as keyof PatchUserReq],
+          }),
+          {}
+        ),
+        ReturnValues: 'ALL_NEW',
+      }
+      await dynamoDbClient.update(params).promise()
+      res.json({ ...dataObject, userId: req.params.userId })
+    } catch (err) {
+      res.status(500).json({ error: 'Could not update user', message: err })
     }
-    const dateNow: number = Date.now()
-    const dataObject: PatchUserReq = { ...req.body, updatedAt: dateNow }
-    const itemKeys = Object.keys(dataObject).filter((key) => {
-      return key !== 'createdAt'
-    })
-    const params = {
-      TableName: USERS_TABLE,
-      Key: {
-        userId: req.params.userId,
-      },
-      UpdateExpression: `SET ${itemKeys
-        .map((key, index) => `#field${index} = :value${index}`)
-        .join(', ')}`,
-      ExpressionAttributeNames: itemKeys.reduce(
-        (accumulator, key, index) => ({
-          ...accumulator,
-          [`#field${index}`]: key,
-        }),
-        {}
-      ),
-      ExpressionAttributeValues: itemKeys.reduce(
-        (accumulator, key: string, index: number) => ({
-          ...accumulator,
-          [`:value${index}`]: dataObject[key as keyof PatchUserReq],
-        }),
-        {}
-      ),
-      ReturnValues: 'ALL_NEW',
-    }
-    await dynamoDbClient.update(params).promise()
-    res.json({ ...dataObject, userId: req.params.userId })
-  } catch (err) {
-    res.status(500).json({ error: 'Could not update user', message: err })
   }
-})
+)
+
+// delete user
+router.delete(
+  '/:userId',
+  async (req: Request, res: Response): Promise<void | Response> => {
+    try {
+      const { Item } = await dynamoDbClient
+        .get({
+          TableName: USERS_TABLE,
+          Key: {
+            userId: req.params.userId,
+          },
+        })
+        .promise()
+      if (!Item) {
+        return res
+          .status(404)
+          .json({ error: 'Could not find user with provided "userId"' })
+      }
+      await dynamoDbClient
+        .delete({
+          TableName: USERS_TABLE,
+          Key: {
+            userId: req.params.userId,
+          },
+        })
+        .promise()
+      res.json({ message: 'Deleted the user' })
+    } catch (err) {
+      res.status(500).json({ error: 'Could not delete user', message: err })
+    }
+  }
+)
 
 export { router }
