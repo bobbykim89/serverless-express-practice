@@ -1,11 +1,11 @@
 org: bobbykim89
 app: serverless-practice
 service: serverless-practice
-frameworkVersion: "3"
+frameworkVersion: '3'
 
 custom:
-  tableName: "users-table-${sls:stage}"
-  productTable: "product-table-${sls:stage}"
+  tableName: 'users-table-${sls:stage}'
+  productTable: 'product-table-${sls:stage}'
 
 provider:
   name: aws
@@ -27,15 +27,19 @@ provider:
   environment:
     USERS_TABLE: ${self:custom.tableName}
     PROD_TABLE: ${self:custom.productTable}
+  httpApi:
+    cors: true
 
 functions:
   api:
-    handler: handler.handler
+    handler: dist/handler.handler
     events:
-      - httpApi: "*"
+      - httpApi: '*'
 
 package:
   excludeDevDependencies: true
+  patterns:
+    - '!src/**'
 
 resources:
   Resources:
@@ -61,3 +65,6 @@ resources:
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
         TableName: ${self:custom.productTable}
+
+plugins:
+  - serverless-bundle
