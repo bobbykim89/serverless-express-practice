@@ -3,8 +3,10 @@ import express, { Request, Response } from 'express'
 import { check, validationResult } from 'express-validator'
 import { v4 as uuid } from 'uuid'
 
-// import types
+// import dto
 import type { PostUserReq, PatchUserReq } from './dto'
+// import middleware
+import { Auth } from '@/middleware'
 
 const router = express.Router()
 const USERS_TABLE = process.env.USERS_TABLE as string
@@ -53,6 +55,7 @@ router.get('/:userId', async (req: Request, res: Response): Promise<void> => {
 
 router.post(
   '/',
+  Auth,
   [
     check('name').isString().not().isEmpty(),
     check('email').isEmail().normalizeEmail({ gmail_remove_dots: false }),
@@ -121,6 +124,7 @@ router.post(
 
 router.patch(
   '/:userId',
+  Auth,
   async (req: Request, res: Response): Promise<void | Response> => {
     try {
       const { Item } = await dynamoDbClient
@@ -175,6 +179,7 @@ router.patch(
 // delete user
 router.delete(
   '/:userId',
+  Auth,
   async (req: Request, res: Response): Promise<void | Response> => {
     try {
       const { Item } = await dynamoDbClient

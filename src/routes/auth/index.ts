@@ -1,14 +1,17 @@
 import AWS from 'aws-sdk'
 import express, { Request, Response } from 'express'
 import { check, validationResult } from 'express-validator'
-import { checkAuth as Auth } from '@/middleware'
+import { Auth } from '@/middleware'
+
+// import dto
+import type { AuthInput } from './dto'
 
 const router = express.Router()
 const cognito = new AWS.CognitoIdentityServiceProvider()
 const USER_POOL_ID = process.env.USER_POOL_ID as string
 const CLIENT_ID = process.env.CLIENT_ID as string
 
-// Get Logged in user
+// Get current in user
 router.get(
   '/',
   Auth,
@@ -27,9 +30,11 @@ router.get(
           error: 'Could not find user with provided email address',
         })
       }
-      return res.json(user)
+      return res.status(200).json(user)
     } catch (err) {
-      res.status(500).json({ error: 'Cannot get current user', message: err })
+      return res
+        .status(500)
+        .json({ error: 'Cannot get current user', message: err })
     }
   }
 )
@@ -43,7 +48,7 @@ router.post(
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() })
     }
-    const { email, password } = req.body
+    const { email, password }: AuthInput = req.body
     try {
       const user = await cognito
         .adminInitiateAuth({

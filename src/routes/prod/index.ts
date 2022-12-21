@@ -5,6 +5,8 @@ import { v4 as uuid } from 'uuid'
 
 // import dto
 import { PostProdReq } from './dto'
+// import middleware
+import { Auth } from '@/middleware'
 
 const router = express.Router()
 const PROD_TABLE = process.env.PROD_TABLE as string
@@ -49,7 +51,7 @@ router.get('/:prodId', async (req: Request, res: Response): Promise<void> => {
 })
 
 // get prod by user
-router.get('/user/:userId', async (req: Request, res: Response) => {
+router.get('/user/:userId', Auth, async (req: Request, res: Response) => {
   try {
     const { Items } = await dynamoDbClient
       .scan({
@@ -68,6 +70,7 @@ router.get('/user/:userId', async (req: Request, res: Response) => {
 
 router.post(
   '/',
+  Auth,
   [
     check('name').isString().not().isEmpty(),
     check('description').isString(),
@@ -96,13 +99,16 @@ router.post(
         .promise()
       res.json({ data: dataObject })
     } catch (err) {
-      res.status(500).json({ error: 'Could not create product', message: err })
+      return res
+        .status(500)
+        .json({ error: 'Could not create product', message: err })
     }
   }
 )
 
 router.delete(
   '/:prodId',
+  Auth,
   async (req: Request, res: Response): Promise<void | Response> => {
     try {
       const { Item } = await dynamoDbClient
@@ -126,9 +132,11 @@ router.delete(
           },
         })
         .promise()
-      res.json({ message: 'Deleted the prod' })
+      return res.status(200).json({ message: 'Deleted the prod' })
     } catch (err) {
-      res.status(500).json({ error: 'Could not delete prod', message: err })
+      return res
+        .status(500)
+        .json({ error: 'Could not delete prod', message: err })
     }
   }
 )
