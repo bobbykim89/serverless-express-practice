@@ -96,7 +96,7 @@ router.post(
         .promise()
       res.json({ data: dataObject })
     } catch (err) {
-      res.status(500).json({ error: 'Could not create product' })
+      res.status(500).json({ error: 'Could not create product', message: err })
     }
   }
 )
