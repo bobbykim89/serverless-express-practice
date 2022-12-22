@@ -162,4 +162,4 @@ router.delete(
   }
 )
 
-export { router }
+export { router as ProdRouter }

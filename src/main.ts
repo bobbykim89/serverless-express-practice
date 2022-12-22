@@ -1,9 +1,9 @@
 import express, { Response } from 'express'
 
 // routes
-import { router as usersRouter } from '@/routes/users'
-import { router as prodRouter } from '@/routes/prod'
-import { router as authRouter } from '@/routes/auth'
+import { UsersRouter } from '@/routes/users'
+import { ProdRouter } from '@/routes/prod'
+import { AuthRouter } from '@/routes/auth'
 
 // initialize express app
 const app = express()
@@ -16,9 +16,9 @@ app.get('/', (_, res: Response) => {
 })
 
 // define routes
-app.use('/users', usersRouter)
-app.use('/prod', prodRouter)
-app.use('/auth', authRouter)
+app.use('/users', UsersRouter)
+app.use('/prod', ProdRouter)
+app.use('/auth', AuthRouter)
 
 app.use((_, res: Response) => {
   return res.status(404).json({

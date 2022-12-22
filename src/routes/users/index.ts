@@ -1,7 +1,6 @@
 import AWS from 'aws-sdk'
 import express, { Request, Response } from 'express'
 import { check, validationResult } from 'express-validator'
-import { v4 as uuid } from 'uuid'
 
 // import dto
 import type { PostUserReq, PatchUserReq } from './dto'
@@ -210,4 +209,4 @@ router.delete(
   }
 )
 
-export { router }
+export { router as UsersRouter }
