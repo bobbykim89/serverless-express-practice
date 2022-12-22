@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import { CognitoJwtVerifier } from 'aws-jwt-verify'
+import type { CognitoIdTokenPayload } from 'aws-jwt-verify/jwt-model'
 
 const USER_POOL_ID = process.env.USER_POOL_ID as string
 const CLIENT_ID = process.env.CLIENT_ID as string

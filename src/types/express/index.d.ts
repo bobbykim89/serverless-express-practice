@@ -1,11 +1,12 @@
 import type { UserType } from '@/types/custom'
+import type { CognitoIdTokenPayload } from 'aws-jwt-verify/jwt-model'
 
 export {}
 
 declare global {
   namespace Express {
     export interface Request {
-      user?: UserType | any
+      user: CognitoIdTokenPayload
     }
   }
 }

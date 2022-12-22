@@ -19,7 +19,7 @@ export class AuthController {
       const user = await cognito
         .adminGetUser({
           UserPoolId: USER_POOL_ID,
-          Username: email,
+          Username: email as string,
         })
         .promise()
 
