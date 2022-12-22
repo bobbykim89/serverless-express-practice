@@ -70,17 +70,14 @@ router.post(
   '/',
   Auth,
   upload.single('image'),
-  [
-    check('name').isString().not().isEmpty(),
-    check('description').isString(),
-    check('userId').isString().not().isEmpty(),
-  ],
+  [check('name').isString().not().isEmpty(), check('description').isString()],
   async (req: Request, res: Response): Promise<void | Response> => {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() })
     }
-    const { name, description, userId } = req.body
+    const { name, description } = req.body
+    const { email } = req.user
     const uid = `Prod-${uuid()}`
 
     try {
@@ -103,7 +100,7 @@ router.post(
         prodId: uid,
         name,
         description,
-        userId,
+        userId: `User-${email}`,
         imageId: public_id,
         originalImage: secure_url,
         thumbUrl: secure_url.replace('/upload', '/upload/c_scale,w_250/f_auto'),
@@ -121,9 +118,10 @@ router.post(
         .promise()
       return res.status(200).json(dataObject)
     } catch (err) {
-      return res
-        .status(500)
-        .json({ error: 'Could not create product', message: err })
+      return res.status(500).json({
+        error: 'Could not create product',
+        message: err,
+      })
     }
   }
 )

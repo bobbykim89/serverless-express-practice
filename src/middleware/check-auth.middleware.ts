@@ -20,7 +20,7 @@ const checkAuth = async (
 
   try {
     const payload = await verifier.verify(token)
-    req.body.user = payload
+    req.user = payload
     next()
   } catch (err) {
     return res.status(401).json({ message: 'Token is not valid', error: err })

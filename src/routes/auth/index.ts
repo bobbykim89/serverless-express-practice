@@ -1,3 +1,4 @@
+import { UserType } from './../../types/custom/user-type.interface'
 import AWS from 'aws-sdk'
 import express, { Request, Response } from 'express'
 import { check, validationResult } from 'express-validator'
@@ -16,7 +17,7 @@ router.get(
   '/',
   Auth,
   async (req: Request, res: Response): Promise<void | Response> => {
-    const { email } = req.body.user
+    const { email } = req.user
     try {
       const user = await cognito
         .adminGetUser({
@@ -26,7 +27,7 @@ router.get(
         .promise()
 
       if (!user) {
-        return res.json({
+        return res.status(400).json({
           error: 'Could not find user with provided email address',
         })
       }
