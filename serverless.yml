@@ -102,3 +102,4 @@ resources:
 
 plugins:
   - serverless-bundle
+  - serverless-dotenv-plugin

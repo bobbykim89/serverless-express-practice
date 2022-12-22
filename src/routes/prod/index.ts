@@ -6,7 +6,7 @@ import { v4 as uuid } from 'uuid'
 // import dto
 import { PostProdReq } from './dto'
 // import middleware
-import { Auth } from '@/middleware'
+import { Auth, upload, Cloudinary } from '@/middleware'
 
 const router = express.Router()
 const PROD_TABLE = process.env.PROD_TABLE as string
@@ -20,9 +20,7 @@ router.get('/', async (_, res: Response): Promise<void> => {
         TableName: PROD_TABLE,
       })
       .promise()
-    res.json({
-      products: Items,
-    })
+    res.status(200).json(Items)
   } catch (err) {
     res.status(500).json({ error: 'Could not retrieve table', message: err })
   }
@@ -39,7 +37,7 @@ router.get('/:prodId', async (req: Request, res: Response): Promise<void> => {
       })
       .promise()
     if (Item) {
-      res.json({ product: Item })
+      res.status(200).json(Item)
     } else {
       res
         .status(404)
@@ -60,7 +58,7 @@ router.get('/user/:userId', Auth, async (req: Request, res: Response) => {
         ExpressionAttributeValues: { ':r': req.params.userId },
       })
       .promise()
-    res.json({ products: Items })
+    res.status(200).json(Items)
   } catch (err) {
     res
       .status(500)
@@ -71,6 +69,7 @@ router.get('/user/:userId', Auth, async (req: Request, res: Response) => {
 router.post(
   '/',
   Auth,
+  upload.single('image'),
   [
     check('name').isString().not().isEmpty(),
     check('description').isString(),
@@ -83,21 +82,44 @@ router.post(
     }
     const { name, description, userId } = req.body
     const uid = `Prod-${uuid()}`
-    const dataObject: PostProdReq = {
-      prodId: uid,
-      name,
-      description,
-      userId,
-      createdAt: Date.now(),
-    }
+
     try {
+      const { public_id, secure_url } = await Cloudinary.uploader.upload(
+        req.file!.path,
+        {
+          folder: 'serverless-practice',
+        },
+        // looks like custom error handler is not working as expected
+        (error, _) => {
+          if (error) {
+            return res
+              .status(403)
+              .json({ message: 'Failed to upload image', error })
+          }
+        }
+      )
+
+      const dataObject: PostProdReq = {
+        prodId: uid,
+        name,
+        description,
+        userId,
+        imageId: public_id,
+        originalImage: secure_url,
+        thumbUrl: secure_url.replace('/upload', '/upload/c_scale,w_250/f_auto'),
+        imageUrl: secure_url.replace(
+          '/upload',
+          '/upload/c_scale,w_1200/q_auto'
+        ),
+        createdAt: Date.now(),
+      }
       await dynamoDbClient
         .put({
           TableName: PROD_TABLE,
           Item: dataObject,
         })
         .promise()
-      res.json({ data: dataObject })
+      return res.status(200).json(dataObject)
     } catch (err) {
       return res
         .status(500)
@@ -115,7 +137,7 @@ router.delete(
         .get({
           TableName: PROD_TABLE,
           Key: {
-            prodId: req.params.userId,
+            prodId: req.params.prodId,
           },
         })
         .promise()
@@ -124,15 +146,16 @@ router.delete(
           .status(404)
           .json({ error: 'Could not find prod with provided "userId"' })
       }
+      await Cloudinary.uploader.destroy(Item.imageId)
       await dynamoDbClient
         .delete({
           TableName: PROD_TABLE,
           Key: {
-            userId: req.params.userId,
+            prodId: req.params.prodId,
           },
         })
         .promise()
-      return res.status(200).json({ message: 'Deleted the prod' })
+      return res.status(200).json({ message: 'Deleted the prod', item: Item })
     } catch (err) {
       return res
         .status(500)
