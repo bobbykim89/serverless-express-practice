@@ -84,26 +84,39 @@ export class ProdController {
     const uid = `Prod-${uuid()}`
 
     try {
-      const { public_id, secure_url } = await Cloudinary.uploader.upload(
-        req.file!.path,
-        {
-          folder: 'serverless-practice',
+      let dataObject: PostProdReq
+      if (req.file) {
+        const { public_id, secure_url } = await Cloudinary.uploader.upload(
+          req.file!.path,
+          {
+            folder: 'serverless-practice',
+          }
+        )
+        dataObject = {
+          prodId: uid,
+          name,
+          description,
+          userId: `User-${email}`,
+          imageId: public_id,
+          originalImage: secure_url,
+          thumbUrl: secure_url.replace(
+            '/upload',
+            '/upload/c_scale,w_250/f_auto'
+          ),
+          imageUrl: secure_url.replace(
+            '/upload',
+            '/upload/c_scale,w_1200/q_auto'
+          ),
+          createdAt: Date.now(),
         }
-      )
-
-      const dataObject: PostProdReq = {
-        prodId: uid,
-        name,
-        description,
-        userId: `User-${email}`,
-        imageId: public_id,
-        originalImage: secure_url,
-        thumbUrl: secure_url.replace('/upload', '/upload/c_scale,w_250/f_auto'),
-        imageUrl: secure_url.replace(
-          '/upload',
-          '/upload/c_scale,w_1200/q_auto'
-        ),
-        createdAt: Date.now(),
+      } else {
+        dataObject = {
+          prodId: uid,
+          name,
+          description,
+          userId: `User-${email}`,
+          createdAt: Date.now(),
+        }
       }
       await dynamoDbClient
         .put({

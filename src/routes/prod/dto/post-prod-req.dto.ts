@@ -4,8 +4,8 @@ export interface PostProdReq {
   description?: string
   userId: string
   createdAt: number
-  imageId: string
-  originalImage: string
-  thumbUrl: string
-  imageUrl: string
+  imageId?: string
+  originalImage?: string
+  thumbUrl?: string
+  imageUrl?: string
 }
